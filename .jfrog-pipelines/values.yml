@@ -3,7 +3,7 @@ templateRepository:
   path: creepy-pirate/template-check
   branch: actualtemplateToPublish
   templateFolder: /
- 
+
 publishTemplate:
   namespace: newTemplates
   name: myPipelineTemplate
