@@ -9,4 +9,3 @@ publishTemplate:
   name: myPipelineTemplate
   version: 1.0.0
   pipelineName: PublishTemplate
-  artifactoryIntegration: "jpat_deepak"
