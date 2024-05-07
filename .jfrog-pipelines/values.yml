@@ -10,4 +10,4 @@ publishTemplate:
   version: 1.0.0
   pipelineName: PublishTemplateUnique
   jfrogAccessTokenIntegration: jpat_deepak
-  runtime: "type: image\n  image:\n    auto:\n      language: 'node'\n      versions:\n        - '18'"
+  runtime: "\ntype: image\n  image:\n    auto:\n      language: 'node'\n      versions:\n        - '18'"
