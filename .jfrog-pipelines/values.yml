@@ -10,10 +10,3 @@ publishTemplate:
   version: 1.0.0
   pipelineName: PublishTemplate
   artifactoryIntegration: jpat_deepak
-  runtime:
-    type: image
-    image:
-      auto:
-        language: 'node'
-        versions:
-          - "18"
