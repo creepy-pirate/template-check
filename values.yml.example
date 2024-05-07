@@ -1,1 +1,49 @@
+templateRepository:
+  # scm integration name
+  gitProvider: myGitIntegration
 
+  # repository path where your templates are present
+  path: someOrg/someRepo
+
+  # branch name or pattern where your templates are present in the repository (optional)
+  branch: master
+
+  # template folder location, where your templateDefinition.yml file is present
+  templateFolder: templates/templateName
+
+  # when set to true and branch is also defined, then auto triggers the publish pipeline upon commit. (optional)
+  autoPublishOnTemplateChange: true
+ 
+publishTemplate:
+  # Template namespace
+  namespace: jfrog_name_space
+
+  # Template name
+  name: myPipelineTemplate
+
+  # Template version
+  version: 0.0.1
+
+  # name of the pipeline (optional)
+  pipelineName: PublishTemplate
+
+  # template repository resource name (optional)
+  templateRepositoryResourceName: templateRepository
+
+  # upload status resource name (optional)
+  templateUploadStatusResourceName: templateUploadStatus
+
+  # JFrog platform access token integration name
+  jfrogAccessTokenIntegration: myJfrogAccessToken
+
+  # Flag to control the version override behavior, if set to false then run will fail, if detects the template is already present.
+  allowOverride: true
+
+  # Flag to control the runtime language and versions (optional)
+  runtime:
+    type: image
+    image:
+        auto:
+            language: 'node'
+            versions:
+                - "18"
