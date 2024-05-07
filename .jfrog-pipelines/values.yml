@@ -8,5 +8,5 @@ publishTemplate:
   namespace: newTemplates
   name: myPipelineTemplate
   version: 1.0.0
-  pipelineName: PublishTemplate
+  pipelineName: PublishTemplateUnique
   jfrogAccessTokenIntegration: jpat_deepak
