@@ -17,3 +17,4 @@ publishTemplate:
         language: 'node'
         versions:
           - "16"
+          - "13"
