@@ -1,1 +1,181 @@
+# Template variables
+{{ $ALLOW_OVERRIDE := ternary false true (eq .Values.publishTemplate.allowOverride false) }}
 
+__globals:
+  templateRepositoryResourceName: &templateRepositoryResourceName '{{ default "templateRepository" .Values.publishTemplate.templateRepositoryResourceName }}'
+  templateUploadStatusResourceName: &templateUploadStatusResourceName '{{ default "templateUploadStatus" .Values.publishTemplate.templateUploadStatusResourceName }}'
+  autoTrigger: &autoTrigger {{ default false (and (.Values.templateRepository.branch) (eq .Values.templateRepository.autoPublishOnTemplateChange true)) }}
+
+resources:
+  - name: *templateRepositoryResourceName
+    type: GitRepo
+    configuration:
+      path: {{ .Values.templateRepository.path }}
+      gitProvider: {{ .Values.templateRepository.gitProvider }}
+      {{ if .Values.templateRepository.branch }}
+      branches:
+        include: {{ .Values.templateRepository.branch}}
+      {{ end }}
+
+  - name: *templateUploadStatusResourceName
+    type: PropertyBag
+    configuration:
+      status: "not-built"
+      templateNamespace: {{ .Values.publishTemplate.namespace }}
+      templateName: {{ .Values.publishTemplate.name }}
+      templateVersion: {{ .Values.publishTemplate.version }}
+
+pipelines:
+  - name: {{ default "PublishTemplate"  .Values.publishTemplate.pipelineName }}
+    configuration:
+      jfrogCliVersion: 2
+      runtime: {{ .Values.publishTemplate.runtime }}
+      environmentVariables:
+        readOnly:
+          templateFolder:
+            default: {{ .Values.templateRepository.templateFolder }}
+            description: Please mention the exact template folder location, where your templateDefinition.yml file is present in the repository
+          templateNamespace:
+            default: {{ .Values.publishTemplate.namespace }}
+            description: Please mention the namespace where you want your template to be uploaded to artifactory's {{ .jfrog-pipelines.rootBucket }}
+          templateName:
+            default: {{ .Values.publishTemplate.name }}
+            description: Please mention the name of your template
+          version: 
+            default: {{ .Values.publishTemplate.version }}
+            description: Please enter semantic version
+    steps:
+      - name: validate_and_publish_template
+        type: Bash
+        configuration:
+          environmentVariables:
+            INTERNAL_TEMPLATE_REPO_RESOURCE_NAME: *templateRepositoryResourceName
+            INTERNAL_UPLOAD_STATUS_RESOURCE_NAME: *templateUploadStatusResourceName
+          inputResources:
+            - name: *templateRepositoryResourceName
+              trigger: *autoTrigger
+          outputResources:
+            - name: *templateUploadStatusResourceName
+          integrations:
+            - name: {{ .Values.publishTemplate.jfrogAccessTokenIntegration }}
+        execution:
+          onStart:
+            - |
+              function configure_artifactory() {
+                jf c add --url ${int_{{ .Values.publishTemplate.jfrogAccessTokenIntegration }}_url} --access-token ${int_{{ .Values.publishTemplate.jfrogAccessTokenIntegration }}_accessToken}
+                isArtifactoryOnline=$(jf rt ping)                
+                if [[ $isArtifactoryOnline != 'OK' ]]; then
+                  echo "Not able to connect to Artifactory url: ${int_{{ .Values.publishTemplate.jfrogAccessTokenIntegration }}_url}. Please check access token."
+                  exit 1
+                fi
+              }
+              configure_artifactory
+          onExecute:
+            - |
+              # Initiating template validation
+              function validate_version() {
+                versionRegex='^([0-9]+\.){0,2}(\*|[0-9]+)$'
+                if [[ $version =~ $versionRegex ]]; then
+                  echo "Template version: $version is valid"
+                else
+                  echo "Template version: $version must be SEMVER compliant"
+                  exit 1
+                fi
+              }
+              
+              function validate_namespace() {
+                if [[ $templateNamespace == 'jfrog' ]]; then
+                  echo "Namespace cannot be jfrog, please choose a different namespace"
+                  exit 1
+                else
+                  echo "Namespace is valid"
+                fi
+              }
+              
+              function validate_template_exists() {
+                templateSearchResult=$(jf rt s pipelines-templates-local/${templateNamespace}/${templateName}/@v/v${version}.zip)
+                if [[ ${templateSearchResult} != '[]' ]]; then
+                  {{ if eq true $ALLOW_OVERRIDE }}
+                  echo "[WARNING] Template ${templateNamespace}/${templateName}/${version} is already published. This run will override the same."
+                  {{ else }}
+                  echo "Template ${templateNamespace}/${templateName}/${version} is already published. Exiting since publishTemplate.allowOverride is set to false"
+                  exit 1
+                  {{ end}}
+                else
+                  echo "Template ${templateNamespace}/${templateName}/${version} is unique and valid."
+                fi
+              }
+              
+              function validate_files() {
+                if [ ! -f "./templateDefinition.yml" ]; then
+                  echo "Please provide valid template folder where your templateDefinition.yml is present in the repository"
+                  exit 1
+                else
+                  echo "templateDefinition.yml found."
+                fi
+              }
+              
+              function validate_template_definition() {
+                echo "Validating templateDefinition.yml (with values.yml.example file, if provided) ..."
+                echo 'const fs=require("fs"),path=require("path");let v="";try{v=fs.readFileSync("values.yml.example",{encoding:"utf8"})}catch(e){}const extraFiles=getFiles(__dirname,[]),t=fs.readFileSync("templateDefinition.yml",{encoding:"utf8"}),p=JSON.stringify({files:[{fileName:"pipelines.yml",content:t,ymlType:""},{fileName:"values.yml",content:v,ymlType:"values"},...extraFiles]}),{spawnSync:e}=require("child_process"),ls=e("curl",["-s","-X","POST","-H","Content-Type:application/json","-H",`Authorization:Bearer ${process.argv[3]}`,"--data",p,`${process.argv[2]}/pipelines/api/v1/validateTemplate`]);function getFiles(e,t){const l=["templateDefinition.yml","values.yml.example","readme.md","README.md","validate.js"],n=[".yml",".yaml",".tpl",".json",".txt",".xml",".toml",".env"],i=fs.readdirSync(e,{withFileTypes:!0});for(const a of i)a.isDirectory()?getFiles(`${e}/${a.name}`,t):!l.includes(a.name)&&n.includes(path.extname(a.name))&&t.push({fileName:a.name,content:fs.readFileSync(`${e}/${a.name}`).toString(),ymlType:"ext"});return t}console.log(ls.stdout.toString());' > validate.js                
+                validationRes=$(node validate.js ${int_{{ .Values.publishTemplate.jfrogAccessTokenIntegration }}_url} ${int_{{ .Values.publishTemplate.jfrogAccessTokenIntegration }}_accessToken})
+                echo '--- VALIDATION RESPONSE ---'
+                echo $validationRes
+                echo '---------------------------'
+                {
+                  isValidRes=$(echo $validationRes | jq -r '.isValid')
+                } || {
+                  echo 'Unexpected error. Exiting...'
+                  exit 1
+                }
+                if [[ "$isValidRes" == null ]]; then
+                  echo "Validation failed for template. Possible errors: Syntax or templating error in 'templateDefinition.yml' or incompatible values in 'values.yml.example' file with respect to template definition."
+                  echo '--- VALIDATION ERROR ---'
+                  echo $validationRes | jq -r '.message'
+                  echo '------------------------'
+                  exit 1
+                else
+                  echo "Template definition is valid."
+                fi
+                rm validate.js
+              }
+              
+              function deploy() {
+                # Deploy to legacy template storage repository for backward compatibility
+                jf rt u ./templateDefinition.yml {{ .jfrog-pipelines.rootBucket }}/templates/$templateNamespace/$templateName/$version/templateDefinition.yml
+                if test -f "./values.yml.example"; then
+                  jfrog rt upload ./values.yml.example {{ .jfrog-pipelines.rootBucket }}/templates/$templateNamespace/$templateName/$version/values.yml.example --recursive=true
+                fi
+                if test -f "./readme.md"; then
+                  jf rt u ./readme.md {{ .jfrog-pipelines.rootBucket }}/templates/$templateNamespace/$templateName/$version/readme.md
+                fi
+                if test -f "./README.md"; then
+                  jf rt u ./README.md {{ .jfrog-pipelines.rootBucket }}/templates/$templateNamespace/$templateName/$version/README.md
+                fi
+              
+                # Deploy to template repository
+                {
+                  jf rt u "*" pipelines-templates-virtual/${templateNamespace}/${templateName}/@v/v${version}.zip --archive zip
+                } || {
+                  echo "Could not publish to new layout templates repository."
+                }
+              }
+            - validate_version
+            - validate_namespace
+            - validate_template_exists
+            - templateRepoResourcePath="res_${INTERNAL_TEMPLATE_REPO_RESOURCE_NAME}_resourcePath"
+            - pushd ${!templateRepoResourcePath}
+            - pushd $templateFolder
+            - validate_files
+            - validate_template_definition
+            - deploy
+            - popd
+            - popd
+          onComplete:
+            - write_output ${INTERNAL_UPLOAD_STATUS_RESOURCE_NAME} "templateNamespace=${templateNamespace}"
+            - write_output ${INTERNAL_UPLOAD_STATUS_RESOURCE_NAME} "templateName=${templateName}"
+            - write_output ${INTERNAL_UPLOAD_STATUS_RESOURCE_NAME} "templateVersion=${version}"
+          onSuccess:
+            - write_output ${INTERNAL_UPLOAD_STATUS_RESOURCE_NAME} "status=success"
+          onFailure:
+            - write_output ${INTERNAL_UPLOAD_STATUS_RESOURCE_NAME} "status=failure"
