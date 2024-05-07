@@ -1,1 +1,12 @@
-
+templateRepository:
+  gitProvider: deepak_git
+  path: creepy-pirate/template-check
+  branch: actualtemplateToPublish
+  templateFolder: /
+ 
+publishTemplate:
+  namespace: newTemplates
+  name: myPipelineTemplate
+  version: 1.0.0
+  pipelineName: PublishTemplate
+  artifactoryIntegration: jpat_deepak
