@@ -10,10 +10,10 @@ publishTemplate:
   version: 1.0.0
   pipelineName: PublishTemplateUnique
   jfrogAccessTokenIntegration: jpat_deepak
-  runtime:
-    image:
-      custom:
-        registry: docker
-        sourceRepository: apps-docker-local
-        name: test.mycompany.io/apps-docker-local/ci/builder-node14
-        tag: 1.0.0
+  # runtime:
+  #   image:
+  #     custom:
+  #       registry: docker
+  #       sourceRepository: apps-docker-local
+  #       name: test.mycompany.io/apps-docker-local/ci/builder-node14
+  #       tag: 1.0.0
