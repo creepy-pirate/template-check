@@ -14,5 +14,7 @@ publishTemplate:
     type: image
     image:
       custom:
-        name: releases-docker.jfrog.io/jfrog/pipelines-u20node
-        tag: 18
+        registry: jpat_deepak
+        sourceRepository: apps-docker-local
+        name: test.mycompany.io/apps-docker-local/ci/builder-node14
+        tag: 1.0.0
