@@ -13,5 +13,5 @@ publishTemplate:
   runtime:
     image:
       custom:
-        name: "releases-docker.jfrog.io/jfrog/pipelines-ubuntu22-node"
-        tag: "18"
+        name: releases-docker.jfrog.io/jfrog/pipelines-ubuntu22-node
+        tag: 18
