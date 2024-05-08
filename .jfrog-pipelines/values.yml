@@ -11,6 +11,7 @@ publishTemplate:
   pipelineName: PublishTemplateUnique
   jfrogAccessTokenIntegration: jpat_deepak
   runtime:
+    type: image
     image:
       custom:
         name: "releases-docker.jfrog.io/jfrog/pipelines-u20node"
