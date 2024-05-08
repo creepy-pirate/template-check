@@ -14,5 +14,5 @@ publishTemplate:
     type: image
     image:
       custom:
-        name: "releases-docker.jfrog.io/jfrog/pipelines-u20node"
-        tag: "18"
+        name: releases-docker.jfrog.io/jfrog/pipelines-u20node
+        tag: 18
