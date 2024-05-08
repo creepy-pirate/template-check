@@ -16,5 +16,5 @@ publishTemplate:
       custom:
         # registry: jpat_deepak
         # sourceRepository: apps-docker-local
-        name: test.mycompany.io/apps-docker-local/ci/builder-node14
+        name: 'test.mycompany.io/apps-docker-local/ci/builder-node14'
         tag: 18.0
