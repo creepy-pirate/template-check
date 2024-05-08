@@ -10,11 +10,3 @@ publishTemplate:
   version: 1.0.0
   pipelineName: PublishTemplateUnique
   jfrogAccessTokenIntegration: jpat_deepak
-  runtime:
-    type: image
-    image:
-      custom:
-        # registry: jpat_deepak
-        # sourceRepository: apps-docker-local
-        name: 'releases-docker.jfrog.io/jfrog/pipelines-u20node'
-        tag: 18.0.0
