@@ -2,7 +2,7 @@ templateRepository:
   gitProvider: deepak_git
   path: creepy-pirate/template-check
   branch: actualtemplateToPublish
-  templateFolder: /
+  templateFolder: ./
 
 publishTemplate:
   namespace: newTemplates
