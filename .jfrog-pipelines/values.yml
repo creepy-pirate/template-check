@@ -10,3 +10,7 @@ publishTemplate:
   version: 1.0.0
   pipelineName: PublishTemplateUnique
   jfrogAccessTokenIntegration: jpat_deepak
+  runtime:
+    custom:
+      name: "releases-docker.jfrog.io/jfrog/pipelines-u18node"
+      tag: "16"
